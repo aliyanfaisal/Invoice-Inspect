@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="InvoiceInspect logo" width="96">
+
 # InvoiceInspect
 
 **Before you pay an invoice, get a second opinion.**
@@ -43,7 +45,7 @@ The core idea is simple: **money math should never be guessed by a language mode
 
 | Layer | Job | Approach |
 | --- | --- | --- |
-| **Extraction** | Turn a PDF into structured fields | Native text extraction, with OCR for scanned documents |
+| **Extraction** | Turn a PDF into structured fields | Two independent readers: **native text + OCR** (smalot/pdfparser, Ghostscript, Tesseract) and an **AI vision model** that reads the rendered pages and quotes what it sees |
 | **Verification** | Decide if the numbers are right | **Deterministic rules engine**: plain arithmetic, no AI in the verdict |
 | **Reasoning** | Explain findings in plain English | LLM layer that explains and double-checks, but never overrides the math |
 | **Review** | Handle unreadable numbers | When a value can't be read with confidence, the user picks the correct one and the checks re-run |
@@ -51,8 +53,9 @@ The core idea is simple: **money math should never be guessed by a language mode
 ## Highlights
 
 - **Rules-based verification engine** with independent rules for line totals, subtotals, grand total, tax, expected rates, required fields and duplicate charges.
-- **Dual-path PDF reading:** text-based and OCR-based extraction, with a visible *scan reading quality* indicator.
-- **Cross-checking:** a second look from an LLM compares its read against the rules extractor to catch misreads.
+- **Dual-path PDF reading:** native text extraction for digital PDFs, Ghostscript + Tesseract OCR for scans, with a visible *scan reading quality* indicator.
+- **AI vision extraction:** a vision model reads the page images and must quote the exact printed text for every value. It never calculates or infers.
+- **Cross-checking:** the AI read and the rules-based read are compared field by field, so a misread on either side is caught instead of trusted.
 - **Downloadable PDF report** of the results for sharing with a vendor or an approver.
 - **Evaluation harness:** a built-in dataset generator and scorer measures extraction and finding accuracy, so changes are tested against numbers rather than vibes.
 - **Provider-agnostic AI layer** with fallback between providers.
@@ -71,10 +74,30 @@ Free-tier uploads are **processed in memory and never stored**. There is no file
 | Backend | Laravel 13, PHP 8.3+ |
 | Frontend | Blade, Tailwind CSS 4, Vite |
 | Database | PostgreSQL |
-| PDF and OCR | PDF text inspection, page rendering, Tesseract OCR |
-| AI | Claude and OpenRouter providers behind a common interface with fallback |
-| Testing | PHPUnit / Laravel test suite, plus a custom evaluation harness |
+| Admin panel | Filament 5 |
+| AI | Anthropic Claude and OpenRouter (Qwen, Gemini Flash models) behind one provider interface with automatic fallback |
+| Testing and quality | PHPUnit, Laravel Pint, custom evaluation harness |
 | Deployment | GitHub Actions |
+
+### PDF and OCR toolchain
+
+| Step | Tool |
+| --- | --- |
+| Native text and layout extraction | [smalot/pdfparser](https://github.com/smalot/pdfparser) |
+| Rendering PDF pages to images (for OCR and vision) | [Ghostscript](https://www.ghostscript.com/) (`gs`) |
+| OCR for scanned invoices | [Tesseract OCR](https://github.com/tesseract-ocr/tesseract), multi-language capable |
+| Vision extraction | Claude / OpenRouter vision models |
+| Test invoice generation | [FPDF](http://www.fpdf.org/) |
+
+### Main libraries
+
+- [`laravel/framework`](https://laravel.com) for the application core
+- [`filament/filament`](https://filamentphp.com) for the admin dashboard
+- [`smalot/pdfparser`](https://github.com/smalot/pdfparser) for PDF text extraction
+- [`league/commonmark`](https://commonmark.thephpleague.com) for the blog and landing-page Markdown
+- [`symfony/yaml`](https://symfony.com/doc/current/components/yaml.html) for content front matter
+- [`tailwindcss`](https://tailwindcss.com) and [`vite`](https://vite.dev) for the frontend build
+- [`phpunit/phpunit`](https://phpunit.de) and [`laravel/pint`](https://laravel.com/docs/pint) for tests and code style
 
 ## Architecture at a glance
 
@@ -82,12 +105,13 @@ Free-tier uploads are **processed in memory and never stored**. There is no file
 PDF upload
    │
    ▼
-PdfInspector ──► text layer ─┐
-   │                         ├─► NormalizedDocument
-   └──► OCR (if scanned) ────┘
-                                   │
-                                   ▼
-                       RulesExtractor  (+ vision cross-check)
+PdfInspector ──► text layer (pdfparser) ─┐
+   │                                     ├─► NormalizedDocument
+   └──► Ghostscript → Tesseract OCR ─────┘
+   │                                           │
+   │                                           ▼
+   └──► Ghostscript → page images        RulesExtractor
+            └──► AI vision extraction ──► cross-check ◄──┘
                                    │
                                    ▼
                     Verifier ── deterministic rules
