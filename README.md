@@ -4,7 +4,7 @@
 
 **Before you pay an invoice, get a second opinion.**
 
-Upload a PDF invoice and find out in seconds whether the line totals, tax and grand total actually add up, with the evidence to prove it.
+Upload a PDF invoice and find out in seconds whether the line totals, tax and grand total actually add up, with the evidence to prove it. 
 
 [**Try it live → invoiceinspect.app**](https://invoiceinspect.app) · [Portfolio case study](https://aliyanfaisal.com/products/invoiceinspect) · [Request source access](mailto:aliyanbarcha15@gmail.com?subject=InvoiceInspect%20private%20repo%20access)
 
