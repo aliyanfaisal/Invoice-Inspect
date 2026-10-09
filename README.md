@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="InvoiceInspect" width="360">
+<img src="assets/logo-main.png" alt="InvoiceInspect" width="360">
 
 **Before you pay an invoice, get a second opinion.**
 
