@@ -52,10 +52,10 @@ The core idea is simple: **money math should never be guessed by a language mode
 
 - **Rules-based verification engine** with independent rules for line totals, subtotals, grand total, tax, expected rates, required fields and duplicate charges.
 - **Dual-path PDF reading:** native text extraction for digital PDFs, Ghostscript + Tesseract OCR for scans, with a visible *scan reading quality* indicator.
-- **AI vision extraction:** a vision model reads the page images and must quote the exact printed text for every value. It never calculates or infers.
+- **AI vision extraction:** a vision model reads the page images and must quote the exact printed text for every value. It never calculates or infers. Its instruction defines what each value is (for example that a deposit is not a discount and that carried-forward rows are not line items), and its answers are tidied (a printed "kr" becomes SEK, a discount is a positive amount).
 - **Cross-checking:** the AI read and the rules-based read are compared field by field, so a misread on either side is caught instead of trusted.
 - **Downloadable PDF report** of the results for sharing with a vendor or an approver.
-- **Evaluation harness with published results:** invoice generators and a scorer measure extraction and finding accuracy against known answers. The test invoices, answer keys, raw results and every test report are public, including the weak results (see [Accuracy and testing](#accuracy-and-testing)).
+- **Evaluation harness with published results:** invoice generators and a scorer measure extraction and finding accuracy against known answers, for five extractors including a model-based one. The test invoices, answer keys, raw results and every test report are public, including the weak results (see [Accuracy and testing](#accuracy-and-testing)).
 - **Provider-agnostic AI layer** with fallback between providers.
 - **Plans and limits:** guest, free and paid tiers with per-day and per-minute limits, file-size and page caps.
 - **Accounts and admin:** signup, login, email verification, password reset, and an admin dashboard for users, usage analytics, plans, SMTP settings and email logs.
@@ -69,11 +69,11 @@ InvoiceInspect is tested with an evaluation harness. It runs the checker on fict
 
 | Report | What it measured | Result |
 | --- | --- | --- |
-| [Test Report 1: Baseline](https://invoiceinspect.app/harness-reports/02-Test-Report-1-Baseline.pdf) | The extractor as it stood, on 30 independent and 40 generator invoices | Independent invoices: 84.5% field accuracy, 25 of 32 planted mistakes found, 30 false alarms. Generator invoices: 99.9%, 20 of 20, no false alarms. |
-| [Test Report 2: After Fixes](https://invoiceinspect.app/harness-reports/03-Test-Report-2-After-Fixes.pdf) | The six reading problems from Report 1, fixed and scored again on the same invoices | Independent invoices: 98.1% field accuracy, 31 of 32 found, 6 false alarms. Generator invoices unchanged at 99.9%. |
-| [Multi Page Invoice Testing and Issues Found](https://invoiceinspect.app/harness-reports/04-Multi-Page-Invoice-Testing-and-Issues-Found.pdf) | 40 new multi-page invoices the extractor had never seen | 72.2% field accuracy, 13 of 20 found, 50 false alarms. Lower accuracy is expected on invoices like these. |
-| [Multi Page Invoice Fixes](https://invoiceinspect.app/harness-reports/05-Multi-Page-Invoice-Fixes.pdf) | The problems from the multi-page report, fixed and scored again on the same 40 invoices, plus the older sets scored again | Multi-page invoices: 99.98% field accuracy, 20 of 20 found, no false alarms. Independent invoices 99.1% and generator invoices 99.9% or better, so nothing got worse. The fixes were made on these invoices, so this shows the problems are gone, not how other invoices read. |
-| [Fresh Invoice Test: Rules and Vision Model](https://invoiceinspect.app/harness-reports/06-Fresh-Invoice-Test-Rules-and-Vision.pdf) | 30 new invoices in ten kinds of document that neither reader has seen, scored with the rules extractor and with a vision extractor in which an AI model reads a picture of each page | Rules: 62.0% field accuracy, 15 of 26 mistakes found, 30 false alarms. Vision: 99.4%, 26 of 26 found, no false alarms. On the older sets, which the rules were fitted to, the two are level on single-page invoices and rules lead on multi-page ones. |
+| [Report 1: Baseline](https://invoiceinspect.app/harness-reports/02-Test-Report-1-Baseline.pdf) | The extractor as it stood, on 30 independent and 40 generator invoices | Independent invoices: 84.5% field accuracy, 25 of 32 planted mistakes found, 30 false alarms. Generator invoices: 99.9%, 20 of 20, no false alarms. |
+| [Report 2: Baseline After Fixes](https://invoiceinspect.app/harness-reports/03-Test-Report-2-After-Fixes.pdf) | The six reading problems from Report 1, fixed and scored again on the same invoices | Independent invoices: 98.1% field accuracy, 31 of 32 found, 6 false alarms. Generator invoices unchanged at 99.9%. |
+| [Report 3: Multi Page Invoice Testing and Issues Found](https://invoiceinspect.app/harness-reports/04-Multi-Page-Invoice-Testing-and-Issues-Found.pdf) | 40 new multi-page invoices the extractor had never seen | 72.2% field accuracy, 13 of 20 found, 50 false alarms. Lower accuracy is expected on invoices like these. |
+| [Report 4: Multi Page Invoice Fixes](https://invoiceinspect.app/harness-reports/05-Multi-Page-Invoice-Fixes.pdf) | The problems from the multi-page report, fixed and scored again on the same 40 invoices, plus the older sets scored again | Multi-page invoices: 99.98% field accuracy, 20 of 20 found, no false alarms. Independent invoices 99.1% and generator invoices 99.9% or better, so nothing got worse. The fixes were made on these invoices, so this shows the problems are gone, not how other invoices read. |
+| [Report 5: Fresh Invoice Test, Rules and Vision Model](https://invoiceinspect.app/harness-reports/06-Fresh-Invoice-Test-Rules-and-Vision.pdf) | 30 new invoices in ten kinds of document that neither reader has seen, scored with the rules extractor and with a vision extractor in which an AI model reads a picture of each page | Rules: 62.0% field accuracy, 15 of 26 mistakes found, 30 false alarms. Vision: 99.4%, 26 of 26 found, no false alarms. On the older sets, which the rules were fitted to, the two are level on single-page invoices and rules lead on multi-page ones. |
 
 How the scoring works is explained in the [Evaluation Harness Guide](https://invoiceinspect.app/harness-reports/01-Evaluation-Harness-Guide.pdf), and the design and baseline results are written up in the [Research Report](https://invoiceinspect.app/research/InvoiceInspect-Research-Report.pdf).
 
@@ -117,7 +117,7 @@ Free-tier uploads are **processed in memory and never stored**. There is no file
 | Frontend | Blade, Tailwind CSS 4, Vite |
 | Database | PostgreSQL |
 | Admin panel | Filament 5 |
-| AI | Anthropic Claude and OpenRouter (Qwen, Gemini Flash models) behind one provider interface with automatic fallback |
+| AI | Anthropic Claude and OpenRouter (Gemini 2.5 Flash by default) behind one provider interface with automatic fallback |
 | Testing and quality | PHPUnit, Laravel Pint, custom evaluation harness |
 | Deployment | GitHub Actions |
 
@@ -128,7 +128,7 @@ Free-tier uploads are **processed in memory and never stored**. There is no file
 | Native text and layout extraction | [smalot/pdfparser](https://github.com/smalot/pdfparser) |
 | Rendering PDF pages to images (for OCR and vision) | [Ghostscript](https://www.ghostscript.com/) (`gs`) |
 | OCR for scanned invoices | [Tesseract OCR](https://github.com/tesseract-ocr/tesseract), multi-language capable |
-| Vision extraction | Claude / OpenRouter vision models |
+| Vision extraction | Gemini 2.5 Flash, Claude or other vision models; page images at 200 dpi, one request per invoice |
 | Test invoice generation | [FPDF](http://www.fpdf.org/) for the built-in single-page and multi-page generators, [ReportLab](https://www.reportlab.com/opensource/) for the independently written invoice sets |
 | Public test reports | [ReportLab](https://www.reportlab.com/opensource/), built from the saved run results |
 
