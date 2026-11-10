@@ -8,9 +8,11 @@
 | --- | --- |
 | Backend | Laravel 13, PHP 8.3+ |
 | Frontend | Blade, Tailwind CSS 4, Vite |
-| Database | PostgreSQL |
+| Database | PostgreSQL or MySQL, with a copy tool to move data between them |
 | Admin panel | Filament 5 |
-| AI | Anthropic Claude and OpenRouter (Gemini 2.5 Flash by default) behind one provider interface with automatic fallback |
+| AI | Anthropic Claude and OpenRouter (Gemini 2.5 Flash by default) behind one provider interface with automatic fallback. The invoice assistant uses a separate small, low-cost model chosen in the admin |
+| Spam protection | Cloudflare Turnstile, asked once per invoice for the assistant and on the feedback form |
+| Bulk upload hand-off | The browser's own storage (IndexedDB), cleared as soon as it is read, so files never wait on the server |
 | Testing and quality | PHPUnit, Laravel Pint, custom evaluation harness |
 | Deployment | GitHub Actions |
 

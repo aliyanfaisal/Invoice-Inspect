@@ -4,7 +4,7 @@
 
 **Before you pay an invoice, get a second opinion.**
 
-Upload a PDF invoice and find out in seconds whether the line totals, tax and grand total actually add up, with the evidence to prove it. 
+Upload a PDF invoice, or a whole batch, and find out in seconds whether the line totals, tax and grand total actually add up, with the evidence to prove it. Then ask questions about what it found.
 
 [**Try it live → invoiceinspect.app**](https://invoiceinspect.app) · [Portfolio case study](https://aliyanfaisal.com/products/invoiceinspect) · [Request source access](mailto:aliyanbarcha15@gmail.com?subject=InvoiceInspect%20private%20repo%20access)
 
@@ -12,6 +12,7 @@ Upload a PDF invoice and find out in seconds whether the line totals, tax and gr
 ![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square&logo=php&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Live-10b981?style=flat-square)
 
 <br>
@@ -36,6 +37,8 @@ InvoiceInspect is an invoice validator for finance teams, accounts payable, free
 - **Duplicate charges:** repeated line items and double-billed amounts surfaced for review.
 - **Missing fields:** invoice number, dates and other required details called out.
 - **Evidence, not just a verdict:** each finding shows *Expected* vs *Invoice says* vs *Difference*, tied back to the page it came from.
+- **Bulk upload:** check many invoices in one go. You land on the results page straight away and each review appears the moment it is ready, so you never wait for the whole batch.
+- **Ask about an invoice:** a built-in assistant answers questions about the invoice in front of you and its findings, and nothing else.
 
 ## Why it's trustworthy
 
@@ -47,6 +50,7 @@ The core idea is simple: **money math should never be guessed by a language mode
 | **Verification** | Decide if the numbers are right | **Deterministic rules engine**: plain arithmetic, no AI in the verdict |
 | **Reasoning** | Explain findings in plain English | LLM layer that explains and double-checks, but never overrides the math |
 | **Review** | Handle unreadable numbers | When a value can't be read with confidence, the user picks the correct one and the checks re-run |
+| **Assistant** | Answer questions about one invoice | A small, low-cost model that sees only the extracted fields and findings, must stay on topic, and cannot invent figures |
 
 ## Highlights
 
@@ -57,8 +61,11 @@ The core idea is simple: **money math should never be guessed by a language mode
 - **Downloadable PDF report** of the results for sharing with a vendor or an approver.
 - **Evaluation harness with published results:** invoice generators and a scorer measure extraction and finding accuracy against known answers, for five extractors including a model-based one. The test invoices, answer keys, raw results and every test report are public, including the weak results (see [Accuracy and testing](#accuracy-and-testing)).
 - **Provider-agnostic AI layer** with fallback between providers.
-- **Plans and limits:** guest, free and paid tiers with per-day and per-minute limits, file-size and page caps.
-- **Accounts and admin:** signup, login, email verification, password reset, and an admin dashboard for users, usage analytics, plans, SMTP settings and email logs.
+- **Bulk upload with live results:** pick many PDFs, limited to the checks your plan has left (each invoice is one check). Invoices are checked one at a time and each review is shown as soon as it finishes, in a tidy list-and-review layout that works on a phone. You can stop the rest, retry one that failed, or correct a value and re-check one invoice in place. See [Bulk upload and results](docs/bulk-upload-and-results.md).
+- **Invoice assistant:** suggested questions written from the invoice's own findings (for example *Why does line 2 not add up?*), answers grounded in the extracted data only, a fixed refusal for anything off topic, and limits per plan with a spam check. See [Invoice assistant](docs/invoice-assistant.md).
+- **Plans and limits:** guest, free and paid tiers with per-day and per-minute limits, file-size and page caps, and a number of assistant questions per invoice, all editable in the admin without a release. The upload box always shows how many checks are left today.
+- **Accounts and admin:** signup, login, email verification, password reset, feedback that earns extra checks, and an admin dashboard for users, usage analytics, plans and limits, AI provider and model settings (including the assistant's model), billing, SMTP settings and email logs.
+- **Runs on PostgreSQL or MySQL:** a built-in tool copies the data from one database to the other, so moving hosts does not mean starting over.
 - **Content and SEO:** blog system with Markdown rendering, guides, tax-specific landing pages (VAT, GST), sitemap and structured data.
 
 ## Accuracy and testing
@@ -76,7 +83,7 @@ Full detail is in [Accuracy and testing](docs/accuracy-and-testing.md): all eigh
 
 ## Privacy by design
 
-Free-tier uploads are **processed in memory and never stored**. There is no file persistence in the free flow, and no signup is needed to check an invoice. Keeping files is never the default. See [Privacy by design](docs/privacy-by-design.md) and the [Security page](https://invoiceinspect.app/security).
+Free-tier uploads are **processed in memory and never stored**. There is no file persistence in the free flow, and no signup is needed to check an invoice. Keeping files is never the default. Bulk uploads pass between pages inside the visitor's own browser and reach the server one file at a time, and the assistant only ever sees extracted text, never the PDF. See [Privacy by design](docs/privacy-by-design.md) and the [Security page](https://invoiceinspect.app/security).
 
 ## Main libraries
 
@@ -86,6 +93,8 @@ Free-tier uploads are **processed in memory and never stored**. There is no file
 | PDF and OCR | [smalot/pdfparser](https://github.com/smalot/pdfparser), [Ghostscript](https://www.ghostscript.com/), [Tesseract](https://github.com/tesseract-ocr/tesseract) |
 | AI | Anthropic Claude and OpenRouter behind one provider interface with fallback |
 | Frontend | Blade, [Tailwind CSS 4](https://tailwindcss.com), [Vite](https://vite.dev) |
+| Database | PostgreSQL or MySQL |
+| Spam protection | [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) on the assistant and the feedback form |
 | Quality | PHPUnit, Laravel Pint, a custom evaluation harness |
 
 The full stack, PDF and OCR toolchain and library list are in [Tech stack and main libraries](docs/tech-stack-and-libraries.md).
@@ -96,7 +105,9 @@ Reading an invoice and judging it are separate jobs. Two independent readers tur
 
 ```text
 PDF upload ─► text layer + OCR ──┐
-          └─► AI vision read ────┴─► cross-check ─► deterministic rules ─► findings ─► results page / PDF report
+(one or many) └─► AI vision read ────┴─► cross-check ─► deterministic rules ─► findings ─► results page / PDF report
+                                                                                    │
+                                                                                    └─► invoice assistant (grounded in the findings)
 ```
 
 The full pipeline diagram and layer breakdown are in [Architecture](docs/architecture.md).
@@ -106,9 +117,11 @@ The full pipeline diagram and layer breakdown are in [Architecture](docs/archite
 | Page | Covers |
 | --- | --- |
 | [Accuracy and testing](docs/accuracy-and-testing.md) | Evaluation harness, test reports, invoice sets, extractors, results |
+| [Bulk upload and results](docs/bulk-upload-and-results.md) | Checking many invoices, the live results page and how limits are respected |
+| [Invoice assistant](docs/invoice-assistant.md) | The chat about one invoice: grounding, scope rules, limits and spam protection |
 | [Privacy by design](docs/privacy-by-design.md) | What is stored, what is not, and how the AI read works |
 | [Tech stack and main libraries](docs/tech-stack-and-libraries.md) | Stack, PDF and OCR toolchain, libraries |
-| [Architecture](docs/architecture.md) | Pipeline and layers |
+| [Architecture](docs/architecture.md) | Pipeline, layers, bulk flow and the assistant |
 
 ## Links
 
